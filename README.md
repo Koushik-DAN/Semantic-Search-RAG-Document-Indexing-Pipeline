@@ -135,7 +135,3 @@ rag-document-pipeline/
 - No response streaming (Ollama responses are returned in full).
 - Single local FAISS index; no distributed/sharded index support.
 - No authentication on the FastAPI service — add a reverse proxy or API-key middleware before exposing it beyond localhost.
-
-## License
-
-MIT

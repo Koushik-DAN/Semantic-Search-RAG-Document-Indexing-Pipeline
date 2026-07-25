@@ -7,7 +7,7 @@ An end-to-end Retrieval-Augmented Generation (RAG) pipeline built with Python, S
 - **Sentence-aware chunking** with configurable size and overlap, so context isn't lost at chunk boundaries.
 - **Sentence-Transformers embeddings** (`all-MiniLM-L6-v2` by default), auto-using Apple Silicon MPS when available.
 - **FAISS vector index** (`IndexFlatIP` on L2-normalized vectors) for exact cosine-similarity search.
-- **Local generation via Ollama** (default `llama3.1:8b`) — fully offline after setup.
+- **Local generation via Ollama** (default `qwen3.6`) — fully offline after setup.
 - **CLI and FastAPI service** sharing one pipeline implementation, so both interfaces behave identically.
 - Bundled sample corpus (a fictional product, "Nimbus") so the pipeline runs out of the box.
 
@@ -44,7 +44,7 @@ pip install -e .
 # 3. Install and start Ollama
 brew install ollama
 ollama serve &          # or launch the Ollama menu-bar app
-ollama pull llama3.1:8b
+ollama pull qwen3.6
 
 # 4. Copy the example environment file (optional — defaults work out of the box)
 cp .env.example .env
@@ -85,7 +85,7 @@ All settings are read from environment variables (or a `.env` file):
 |---|---|---|
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Sentence-Transformers model used for embeddings |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `llama3.1:8b` | Ollama model used for answer generation |
+| `OLLAMA_MODEL` | `qwen3.6` | Ollama model used for answer generation |
 | `CHUNK_SIZE` | `1000` | Max characters per chunk |
 | `CHUNK_OVERLAP` | `200` | Max characters of trailing overlap seeded into the next chunk |
 | `TOP_K` | `5` | Number of chunks retrieved per query |

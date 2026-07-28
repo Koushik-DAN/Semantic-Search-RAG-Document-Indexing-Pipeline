@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { query } from '../api.js'
 
 export default function Chat() {
@@ -49,7 +51,9 @@ export default function Chat() {
             {m.error && <div className="bubble error">{m.error}</div>}
             {m.answer && (
               <div className="bubble answer">
-                <p>{m.answer}</p>
+                <div className="markdown">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.answer}</ReactMarkdown>
+                </div>
                 {m.sources.length > 0 && (
                   <ul className="sources">
                     {m.sources.map((s) => (

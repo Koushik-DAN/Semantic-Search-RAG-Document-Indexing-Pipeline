@@ -78,15 +78,23 @@ class RagPipeline:
             elapsed_seconds=time.monotonic() - start,
         )
 
-    def query(self, question: str, top_k: int | None = None) -> QueryResult:
+    def _retrieve(self, question: str, top_k: int | None) -> tuple[list[RetrievedChunk], str]:
         if self.store is None:
             raise RuntimeError("No index found — run `index_documents` (or `python -m rag index`) first.")
 
         retriever = Retriever(self.embedder, self.store)
         sources = retriever.retrieve(question, top_k=top_k or self.config.top_k)
         prompt = build_prompt(question, sources)
+        return sources, prompt
+
+    def query(self, question: str, top_k: int | None = None) -> QueryResult:
+        sources, prompt = self._retrieve(question, top_k)
         answer = self.generator.generate(prompt)
         return QueryResult(answer=answer, sources=sources)
+
+    def query_stream(self, question: str, top_k: int | None = None):
+        sources, prompt = self._retrieve(question, top_k)
+        return sources, self.generator.generate_stream(prompt)
 
     def health(self) -> dict:
         return {

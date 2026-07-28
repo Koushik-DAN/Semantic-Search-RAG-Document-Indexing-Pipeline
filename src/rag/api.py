@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from rag.chunking import SUPPORTED_EXTENSIONS
 from rag.generator import OllamaUnavailableError
@@ -99,3 +102,32 @@ def post_query(request: QueryRequest) -> QueryResponse:
             for s in result.sources
         ],
     )
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+@app.post("/query/stream")
+def post_query_stream(request: QueryRequest) -> StreamingResponse:
+    pipeline: RagPipeline = app.state.pipeline
+
+    def event_stream():
+        try:
+            sources, token_iter = pipeline.query_stream(request.question, top_k=request.top_k)
+        except RuntimeError as exc:
+            yield _sse("error", {"detail": str(exc)})
+            return
+
+        yield _sse("sources", {"sources": [asdict(s) for s in sources]})
+
+        try:
+            for token in token_iter:
+                yield _sse("token", {"text": token})
+        except OllamaUnavailableError as exc:
+            yield _sse("error", {"detail": str(exc)})
+            return
+
+        yield _sse("done", {})
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

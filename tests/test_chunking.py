@@ -111,7 +111,9 @@ def test_chunk_corpus_picks_up_pdf_alongside_md_and_txt(tmp_path):
 
 
 def test_chunk_pdf_skips_pages_with_no_extractable_text(monkeypatch):
-    from rag import chunking
+    import pypdf
+
+    from rag.chunking import _chunk_pdf
 
     class FakePage:
         def __init__(self, text):
@@ -124,13 +126,8 @@ def test_chunk_pdf_skips_pages_with_no_extractable_text(monkeypatch):
         def __init__(self, _path):
             self.pages = [FakePage("Real content on this page."), FakePage(""), FakePage("   ")]
 
-    monkeypatch.setattr(chunking, "PdfReader", FakeReader, raising=False)
-    monkeypatch.setitem(
-        __import__("sys").modules,
-        "pypdf",
-        type("M", (), {"PdfReader": FakeReader})(),
-    )
+    monkeypatch.setattr(pypdf, "PdfReader", FakeReader)
 
-    chunks = chunking._chunk_pdf(FIXTURES_DIR / "sample.pdf", chunk_size=1000, chunk_overlap=200)
+    chunks = _chunk_pdf(FIXTURES_DIR / "sample.pdf", chunk_size=1000, chunk_overlap=200)
     assert len(chunks) == 1
     assert chunks[0].chunk_id == "sample::p001::0000"

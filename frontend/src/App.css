@@ -139,6 +139,60 @@ button:disabled {
   margin: 0;
 }
 
+.markdown > *:first-child {
+  margin-top: 0;
+}
+
+.markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown p {
+  margin: 0.4rem 0;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0.4rem 0;
+  padding-left: 1.3rem;
+}
+
+.markdown li {
+  margin: 0.15rem 0;
+}
+
+.markdown code {
+  background: #e4e6ee;
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85em;
+}
+
+.markdown pre {
+  background: #1e1e2a;
+  color: #f2f2f2;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  margin: 0.4rem 0;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid #d5d7e0;
+  padding: 0.25rem 0.5rem;
+}
+
 .sources {
   margin: 0.5rem 0 0;
   padding-left: 1.1rem;

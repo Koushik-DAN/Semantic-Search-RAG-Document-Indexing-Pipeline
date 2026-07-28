@@ -86,3 +86,51 @@ def test_chunk_corpus_reads_all_md_and_txt_files(tmp_path):
     chunks = chunk_corpus(tmp_path)
     sources = {c.source for c in chunks}
     assert sources == {"a.md", "b.txt"}
+
+
+def test_chunk_document_extracts_pdf_text_per_page_with_page_in_chunk_id():
+    chunks = chunk_document(FIXTURES_DIR / "sample.pdf", chunk_size=1000, chunk_overlap=200)
+
+    assert len(chunks) == 3
+    assert all(c.source == "sample.pdf" for c in chunks)
+    assert [c.chunk_id for c in chunks] == ["sample::p001::0000", "sample::p002::0000", "sample::p003::0000"]
+    assert "onboarding" in chunks[0].text
+    assert "two factor authentication" in chunks[1].text
+    assert "audit log" in chunks[2].text
+
+
+def test_chunk_corpus_picks_up_pdf_alongside_md_and_txt(tmp_path):
+    import shutil
+
+    (tmp_path / "a.md").write_text("First document content sentence.")
+    shutil.copy(FIXTURES_DIR / "sample.pdf", tmp_path / "sample.pdf")
+
+    chunks = chunk_corpus(tmp_path)
+    sources = {c.source for c in chunks}
+    assert sources == {"a.md", "sample.pdf"}
+
+
+def test_chunk_pdf_skips_pages_with_no_extractable_text(monkeypatch):
+    from rag import chunking
+
+    class FakePage:
+        def __init__(self, text):
+            self._text = text
+
+        def extract_text(self):
+            return self._text
+
+    class FakeReader:
+        def __init__(self, _path):
+            self.pages = [FakePage("Real content on this page."), FakePage(""), FakePage("   ")]
+
+    monkeypatch.setattr(chunking, "PdfReader", FakeReader, raising=False)
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "pypdf",
+        type("M", (), {"PdfReader": FakeReader})(),
+    )
+
+    chunks = chunking._chunk_pdf(FIXTURES_DIR / "sample.pdf", chunk_size=1000, chunk_overlap=200)
+    assert len(chunks) == 1
+    assert chunks[0].chunk_id == "sample::p001::0000"

@@ -86,6 +86,22 @@ curl -X POST http://localhost:8000/upload \
 
 `POST /upload` decodes the base64 payload, writes it into `docs_dir` (default `data/corpus`, sanitizing the filename against path traversal), then does a full reindex of that directory — the same as calling `/index` right after saving the file yourself. The response includes the same document/chunk counts as `/index`, plus `filename` and `saved_path`.
 
+## Frontend
+
+A minimal React UI (upload + chat, no auth) lives in `frontend/`. It talks to the API via a Vite dev-server proxy, so no CORS setup is needed.
+
+```bash
+# Terminal 1 — the API
+python -m rag serve
+
+# Terminal 2 — the UI
+cd frontend
+npm install
+npm run dev
+```
+
+Open the URL Vite prints (default `http://localhost:5173`). The status line at the top confirms the backend is reachable; below it you can upload a `.md`/`.txt`/`.pdf` file (indexes it immediately) and ask questions in the chat panel.
+
 ## Configuration
 
 All settings are read from environment variables (or a `.env` file):

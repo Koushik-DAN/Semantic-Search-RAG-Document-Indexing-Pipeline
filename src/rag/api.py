@@ -7,11 +7,14 @@ in rag.pipeline, shared with the CLI.
 
 from __future__ import annotations
 
+import base64
+import binascii
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 
+from rag.chunking import SUPPORTED_EXTENSIONS
 from rag.generator import OllamaUnavailableError
 from rag.pipeline import RagPipeline
 from rag.schemas import (
@@ -21,6 +24,8 @@ from rag.schemas import (
     QueryRequest,
     QueryResponse,
     SourceItem,
+    UploadRequest,
+    UploadResponse,
 )
 
 

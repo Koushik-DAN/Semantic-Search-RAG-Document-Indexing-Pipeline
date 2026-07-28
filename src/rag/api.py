@@ -55,6 +55,33 @@ def post_index(request: IndexRequest) -> IndexResponse:
     return IndexResponse(**stats.__dict__)
 
 
+@app.post("/upload", response_model=UploadResponse)
+def post_upload(request: UploadRequest) -> UploadResponse:
+    pipeline: RagPipeline = app.state.pipeline
+
+    filename = Path(request.filename).name  # strip any directory components — no path traversal
+    suffix = Path(filename).suffix.lower()
+    if suffix not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix or '(none)'}")
+
+    try:
+        raw = base64.b64decode(request.content_base64, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 content: {exc}") from exc
+
+    docs_dir = Path(request.docs_dir)
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    dest = docs_dir / filename
+    dest.write_bytes(raw)
+
+    try:
+        stats = pipeline.index_documents(docs_dir)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return UploadResponse(filename=filename, saved_path=str(dest), **stats.__dict__)
+
+
 @app.post("/query", response_model=QueryResponse)
 def post_query(request: QueryRequest) -> QueryResponse:
     pipeline: RagPipeline = app.state.pipeline

@@ -1,33 +1,36 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { query } from '../api.js'
+import { queryStream } from '../api.js'
 
 export default function Chat() {
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState([])
   const [busy, setBusy] = useState(false)
 
+  function updateLastMessage(patch) {
+    setMessages((prev) => {
+      const next = [...prev]
+      next[next.length - 1] = { ...next[next.length - 1], ...(typeof patch === 'function' ? patch(next[next.length - 1]) : patch) }
+      return next
+    })
+  }
+
   async function handleSend() {
     const q = question.trim()
     if (!q || busy) return
     setBusy(true)
     setQuestion('')
-    setMessages((prev) => [...prev, { question: q, answer: null, sources: [], error: null }])
+    setMessages((prev) => [...prev, { question: q, answer: '', sources: [], error: null }])
 
     try {
-      const result = await query(q)
-      setMessages((prev) => {
-        const next = [...prev]
-        next[next.length - 1] = { question: q, answer: result.answer, sources: result.sources, error: null }
-        return next
+      await queryStream(q, {
+        onSources: (sources) => updateLastMessage({ sources }),
+        onToken: (text) => updateLastMessage((m) => ({ answer: m.answer + text })),
+        onError: (detail) => updateLastMessage({ error: detail }),
       })
     } catch (err) {
-      setMessages((prev) => {
-        const next = [...prev]
-        next[next.length - 1] = { question: q, answer: null, sources: [], error: err.message }
-        return next
-      })
+      updateLastMessage({ error: err.message })
     } finally {
       setBusy(false)
     }

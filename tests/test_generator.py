@@ -47,6 +47,56 @@ def test_is_available_true_on_200():
         assert generator.is_available() is True
 
 
+def test_generate_stream_yields_tokens_and_posts_stream_true():
+    generator = OllamaGenerator(host="http://localhost:11434", model="llama3.1:8b")
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status.return_value = None
+    mock_response.iter_lines.return_value = [
+        b'{"response": "Nimbus", "done": false}',
+        b'{"response": " is", "done": false}',
+        b'{"response": " great.", "done": false}',
+        b'{"done": true}',
+    ]
+
+    with patch("rag.generator.requests.post", return_value=mock_response) as mock_post:
+        tokens = list(generator.generate_stream("What is Nimbus?", temperature=0.1))
+
+    assert "".join(tokens) == "Nimbus is great."
+    _, kwargs = mock_post.call_args
+    assert kwargs["json"] == {
+        "model": "llama3.1:8b",
+        "prompt": "What is Nimbus?",
+        "stream": True,
+        "options": {"temperature": 0.1},
+    }
+    assert kwargs["stream"] is True
+
+
+def test_generate_stream_raises_actionable_error_on_connection_failure():
+    generator = OllamaGenerator(host="http://localhost:11434", model="llama3.1:8b")
+    with patch("rag.generator.requests.post", side_effect=requests.ConnectionError()):
+        with pytest.raises(OllamaUnavailableError, match="ollama pull llama3.1:8b"):
+            list(generator.generate_stream("hello"))
+
+
+def test_generate_stream_raises_on_mid_stream_failure():
+    generator = OllamaGenerator(host="http://localhost:11434", model="llama3.1:8b")
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status.return_value = None
+
+    def broken_iter_lines():
+        yield b'{"response": "Nim", "done": false}'
+        raise requests.exceptions.ChunkedEncodingError("connection broken")
+
+    mock_response.iter_lines.return_value = broken_iter_lines()
+
+    with patch("rag.generator.requests.post", return_value=mock_response):
+        with pytest.raises(OllamaUnavailableError):
+            list(generator.generate_stream("hello"))
+
+
 def test_live_ollama_smoke_test():
     generator = OllamaGenerator()
     if not generator.is_available():

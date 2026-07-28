@@ -81,9 +81,14 @@ def _take_overlap(buffer: list[str], chunk_overlap: int) -> list[str]:
     return overlap
 
 
-def _make_chunk(buffer: list[str], source: str, source_stem: str, index: int) -> Chunk:
+def _make_chunk(
+    buffer: list[str], source: str, source_stem: str, index: int, page: int | None
+) -> Chunk:
+    chunk_id = (
+        f"{source_stem}::p{page:03d}::{index:04d}" if page is not None else f"{source_stem}::{index:04d}"
+    )
     return Chunk(
-        chunk_id=f"{source_stem}::{index:04d}",
+        chunk_id=chunk_id,
         text=" ".join(buffer),
         source=source,
         index=index,
@@ -95,6 +100,7 @@ def chunk_text(
     source: str,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
+    page: int | None = None,
 ) -> list[Chunk]:
     text = text.strip()
     if not text:
@@ -115,13 +121,13 @@ def chunk_text(
     for sentence in sentences:
         candidate_len = _joined_len(buffer + [sentence])
         if buffer and candidate_len > chunk_size:
-            chunks.append(_make_chunk(buffer, source, source_stem, index))
+            chunks.append(_make_chunk(buffer, source, source_stem, index, page))
             index += 1
             buffer = _take_overlap(buffer, chunk_overlap)
         buffer.append(sentence)
 
     if buffer:
-        chunks.append(_make_chunk(buffer, source, source_stem, index))
+        chunks.append(_make_chunk(buffer, source, source_stem, index, page))
 
     return chunks
 

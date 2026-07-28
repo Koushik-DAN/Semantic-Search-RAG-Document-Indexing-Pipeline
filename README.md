@@ -77,7 +77,14 @@ curl -X POST http://localhost:8000/index \
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"question": "What roles can a workspace member have?"}'
+
+# Upload a file (base64-encoded) and index it in one call
+curl -X POST http://localhost:8000/upload \
+  -H "Content-Type: application/json" \
+  -d "{\"filename\": \"notes.pdf\", \"content_base64\": \"$(base64 -i notes.pdf)\"}"
 ```
+
+`POST /upload` decodes the base64 payload, writes it into `docs_dir` (default `data/corpus`, sanitizing the filename against path traversal), then does a full reindex of that directory — the same as calling `/index` right after saving the file yourself. The response includes the same document/chunk counts as `/index`, plus `filename` and `saved_path`.
 
 ## Configuration
 

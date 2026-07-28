@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from rag.chunking import (
     chunk_corpus,
     chunk_document,
@@ -5,6 +7,8 @@ from rag.chunking import (
     split_into_sentences,
     _split_long_sentence,
 )
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 def test_split_into_sentences_does_not_break_mid_word():

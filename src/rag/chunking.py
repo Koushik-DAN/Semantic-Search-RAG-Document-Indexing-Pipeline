@@ -16,7 +16,7 @@ from pathlib import Path
 from rag.config import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 
 _SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+(?=[A-Z0-9"\'])')
-_DOC_EXTENSIONS = {".md", ".txt"}
+SUPPORTED_EXTENSIONS = {".md", ".txt", ".pdf"}
 
 
 @dataclass(frozen=True)

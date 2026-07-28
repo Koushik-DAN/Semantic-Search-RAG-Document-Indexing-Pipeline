@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import requests
 
 from rag.config import DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
@@ -51,3 +53,38 @@ class OllamaGenerator:
 
         data = response.json()
         return data["response"]
+
+    def generate_stream(self, prompt: str, temperature: float = 0.2):
+        try:
+            response = requests.post(
+                f"{self.host}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": True,
+                    "options": {"temperature": temperature},
+                },
+                timeout=self.timeout,
+                stream=True,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            raise OllamaUnavailableError(
+                f"Could not reach Ollama at {self.host} with model '{self.model}'. "
+                "Make sure Ollama is running (`ollama serve`) and the model is pulled "
+                f"(`ollama pull {self.model}`)."
+            ) from exc
+
+        try:
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                data = json.loads(line)
+                if data.get("response"):
+                    yield data["response"]
+                if data.get("done"):
+                    break
+        except requests.RequestException as exc:
+            raise OllamaUnavailableError(
+                f"Lost connection to Ollama at {self.host} while streaming a response."
+            ) from exc

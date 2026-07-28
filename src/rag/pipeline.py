@@ -52,7 +52,7 @@ class RagPipeline:
 
         chunks = chunk_corpus(docs_dir, self.config.chunk_size, self.config.chunk_overlap)
         if not chunks:
-            raise ValueError(f"No .md or .txt documents found in {docs_dir}")
+            raise ValueError(f"No .md, .txt, or .pdf documents found in {docs_dir}")
 
         vectors = self.embedder.embed([c.text for c in chunks])
         store = FaissVectorStore(dim=self.embedder.dim)

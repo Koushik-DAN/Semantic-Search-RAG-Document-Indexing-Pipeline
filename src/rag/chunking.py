@@ -132,12 +132,47 @@ def chunk_text(
     return chunks
 
 
+def _chunk_pdf(
+    path: Path,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> list[Chunk]:
+    """Extracts text per page and chunks each page independently, so chunk_ids
+    can carry an accurate page number for citations (overlap does not carry
+    across a page boundary)."""
+    from pypdf import PdfReader
+    from pypdf.errors import PdfReadError
+
+    try:
+        reader = PdfReader(str(path))
+        pages_text = [page.extract_text() or "" for page in reader.pages]
+    except PdfReadError as exc:
+        raise ValueError(f"Failed to read PDF {path.name}: {exc}") from exc
+
+    chunks: list[Chunk] = []
+    for page_num, page_text in enumerate(pages_text, start=1):
+        if not page_text.strip():
+            continue
+        chunks.extend(
+            chunk_text(
+                page_text,
+                source=path.name,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                page=page_num,
+            )
+        )
+    return chunks
+
+
 def chunk_document(
     path: Path,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
 ) -> list[Chunk]:
     path = Path(path)
+    if path.suffix.lower() == ".pdf":
+        return _chunk_pdf(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     text = path.read_text(encoding="utf-8")
     return chunk_text(text, source=path.name, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
@@ -150,6 +185,6 @@ def chunk_corpus(
     dir_path = Path(dir_path)
     chunks: list[Chunk] = []
     for path in sorted(dir_path.iterdir()):
-        if path.is_file() and path.suffix.lower() in _DOC_EXTENSIONS:
+        if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS:
             chunks.extend(chunk_document(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap))
     return chunks

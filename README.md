@@ -8,13 +8,15 @@ An end-to-end Retrieval-Augmented Generation (RAG) pipeline built with Python, S
 - **Sentence-Transformers embeddings** (`all-MiniLM-L6-v2` by default), auto-using Apple Silicon MPS when available.
 - **FAISS vector index** (`IndexFlatIP` on L2-normalized vectors) for exact cosine-similarity search.
 - **Local generation via Ollama** (default `gemma4`) — fully offline after setup.
+- **PDF, Markdown, and plain-text ingestion** (`.pdf`/`.md`/`.txt`) — PDFs are chunked per page via `pypdf`, so citations can point at a specific page. Scanned/image-only PDFs with no embedded text layer aren't supported (no OCR).
 - **CLI and FastAPI service** sharing one pipeline implementation, so both interfaces behave identically.
+- **Base64 file upload over the API** (`POST /upload`) — send a file's contents directly to the service without it needing to already exist on the server's filesystem.
 - Bundled sample corpus (a fictional product, "Nimbus") so the pipeline runs out of the box.
 
 ## Architecture
 
 ```
-Documents (.md/.txt) → Chunker → Embedder → FAISS Index
+Documents (.md/.txt/.pdf) → Chunker → Embedder → FAISS Index
                                                   │
 Question → Embedder ──────────────────────→ Retriever → top-k chunks
                                                   │

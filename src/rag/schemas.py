@@ -17,6 +17,17 @@ class IndexResponse(BaseModel):
     elapsed_seconds: float
 
 
+class UploadRequest(BaseModel):
+    filename: str
+    content_base64: str
+    docs_dir: str = "data/corpus"
+
+
+class UploadResponse(IndexResponse):
+    filename: str
+    saved_path: str
+
+
 class QueryRequest(BaseModel):
     question: str
     top_k: int | None = None

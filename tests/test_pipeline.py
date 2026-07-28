@@ -27,6 +27,23 @@ def test_index_and_query_end_to_end(tmp_corpus_dir, tmp_path, monkeypatch):
     assert any(s.source == "sync.md" for s in result.sources)
 
 
+def test_query_stream_yields_tokens_and_sources(tmp_corpus_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv("RAG_INDEX_DIR", str(tmp_path / "index"))
+    monkeypatch.setenv("CHUNK_SIZE", "500")
+    monkeypatch.setenv("CHUNK_OVERLAP", "50")
+
+    pipeline = RagPipeline()
+    monkeypatch.setattr(
+        pipeline.generator, "generate_stream", lambda prompt, temperature=0.2: iter(["Hello", " world"])
+    )
+
+    pipeline.index_documents(tmp_corpus_dir)
+    sources, token_iter = pipeline.query_stream("How do I resolve a sync conflict?", top_k=2)
+
+    assert any(s.source == "sync.md" for s in sources)
+    assert "".join(token_iter) == "Hello world"
+
+
 def test_query_without_index_raises(tmp_path, monkeypatch):
     monkeypatch.setenv("RAG_INDEX_DIR", str(tmp_path / "does-not-exist"))
     pipeline = RagPipeline()

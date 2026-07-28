@@ -107,3 +107,38 @@ def test_upload_sanitizes_path_traversal_in_filename(tmp_path, monkeypatch):
     assert body["filename"] == "evil.md"
     assert (docs_dir / "evil.md").exists()
     assert not (tmp_path / "etc").exists()
+
+
+def test_query_stream_emits_sources_tokens_then_done(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAG_INDEX_DIR", str(tmp_path / "index"))
+    docs_dir = tmp_path / "corpus"
+    content = b"# Sync Conflicts\nWhen two devices edit the same file offline, Nimbus creates a conflicted copy."
+
+    with TestClient(app) as client:
+        upload_response = client.post(
+            "/upload",
+            json={
+                "filename": "sync.md",
+                "content_base64": base64.b64encode(content).decode(),
+                "docs_dir": str(docs_dir),
+            },
+        )
+        assert upload_response.status_code == 200
+
+        app.state.pipeline.generator.generate_stream = lambda prompt, temperature=0.2: iter(
+            ["Nimbus", " creates", " a conflicted copy."]
+        )
+
+        response = client.post("/query/stream", json={"question": "What happens on a sync conflict?"})
+
+    assert response.status_code == 200
+    frames = [f for f in response.text.split("\n\n") if f.strip()]
+    events = [f.split("\n")[0] for f in frames]
+
+    assert events[0] == "event: sources"
+    assert events[1:-1] == ["event: token"] * 3
+    assert events[-1] == "event: done"
+
+    token_frames = frames[1:-1]
+    tokens = [json.loads(f.split("\n")[1][len("data: ") :])["text"] for f in token_frames]
+    assert "".join(tokens) == "Nimbus creates a conflicted copy."
